@@ -1,0 +1,77 @@
+version: '3.3'
+services:
+  backend:
+    image: php_rdkafka_composer
+    volumes:
+      - ./Backend:/var/www/html/
+    ports:
+      - "80:80"
+    depends_on:
+      - db
+    environment:
+      APACHE_SERVER_NAME: symfony.local
+      APPLICATION_ENV: development
+      APACHE_DOCUMENT_ROOT: /var/www/html/public
+      KAFKA_URL: kafka://kafka:9092
+      KAFKA_SASL_USERNAME: kafka-username
+      KAFKA_SASL_PASSWORD: kafka-pass
+
+  backend2:
+      image: php_rdkafka_composer
+      volumes:
+         - ./Backend2:/var/www/html/
+      ports:
+         - "81:80"
+      environment:
+        APACHE_SERVER_NAME: symfony.local
+        APPLICATION_ENV: development
+        APACHE_DOCUMENT_ROOT: /var/www/html/public
+        KAFKA_URL: kafka://kafka:9092
+        KAFKA_SASL_USERNAME: kafka-username
+        KAFKA_SASL_PASSWORD: kafka-pass
+
+  db:
+    image: mysql:latest
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - "3306:3306"
+    volumes:
+      - db:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: symfony
+      MYSQL_USER: vasia
+      MYSQL_PASSWORD: vasia
+
+  kafka:
+    image: wurstmeister/kafka
+    container_name: my_kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_ADVERTISED_LISTENERS: INSIDE://kafka:9092,OUTSIDE://172.27.0.6:9094
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: INSIDE:PLAINTEXT,OUTSIDE:PLAINTEXT
+      KAFKA_LISTENERS: INSIDE://0.0.0.0:9092,OUTSIDE://0.0.0.0:9094
+      KAFKA_INTER_BROKER_LISTENER_NAME: INSIDE
+      KAFKA_ZOOKEEPER_CONNECT: "zookeeper:2181"
+    depends_on:
+      - zookeeper
+    volumes:
+      - kafka_data:/kafka
+
+  zookeeper:
+    image: wurstmeister/zookeeper
+    container_name: my_zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    volumes:
+      - zookeeper_data:/zookeeper
+volumes:
+  db:
+    external: false
+  kafka_data:
+  zookeeper_data:
+
